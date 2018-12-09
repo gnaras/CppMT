@@ -5,6 +5,8 @@
 
 namespace cmt {
 
+constexpr int MaxKeypoints = 1000;
+
 void CMT::initialize(const Mat im_gray, const Rect rect)
 {
     FILE_LOG(logDEBUG) << "CMT::initialize() call";
@@ -24,7 +26,8 @@ void CMT::initialize(const Mat im_gray, const Rect rect)
     //Initialize detector and descriptor
 #if CV_MAJOR_VERSION > 2
     detector = cv::FastFeatureDetector::create();
-    descriptor = cv::BRISK::create();
+    //descriptor = cv::BRISK::create();
+    descriptor = cv::ORB::create(MaxKeypoints);
 #else
     detector = FeatureDetector::create(str_detector);
     descriptor = DescriptorExtractor::create(str_descriptor);
@@ -33,6 +36,7 @@ void CMT::initialize(const Mat im_gray, const Rect rect)
     //Get initial keypoints in whole image and compute their descriptors
     vector<KeyPoint> keypoints;
     detector->detect(im_gray, keypoints);
+    cv::KeyPointsFilter::retainBest(keypoints, MaxKeypoints);
 
     //Divide keypoints into foreground and background keypoints according to selection
     vector<KeyPoint> keypoints_fg;
@@ -115,7 +119,10 @@ void CMT::processFrame(Mat im_gray) {
     //Track keypoints
     vector<Point2f> points_tracked;
     vector<unsigned char> status;
-    tracker.track(im_prev, im_gray, points_active, points_tracked, status);
+    {
+        MicrosecondBlock msb("track");
+        tracker.track(im_prev, im_gray, points_active, points_tracked, status);
+    }
 
     FILE_LOG(logDEBUG) << points_tracked.size() << " tracked points.";
 
@@ -132,32 +139,48 @@ void CMT::processFrame(Mat im_gray) {
 
     //Detect keypoints, compute descriptors
     vector<KeyPoint> keypoints;
-    detector->detect(im_gray, keypoints);
+    {
+        MicrosecondBlock msb("detect");    
+        detector->detect(im_gray, keypoints);
+        cv::KeyPointsFilter::retainBest(keypoints, MaxKeypoints);
+    }
 
     FILE_LOG(logDEBUG) << keypoints.size() << " keypoints found.";
 
     Mat descriptors;
-    descriptor->compute(im_gray, keypoints, descriptors);
+    {
+        MicrosecondBlock msb("descriptor");
+        descriptor->compute(im_gray, keypoints, descriptors);
+    }
 
     //Match keypoints globally
     vector<Point2f> points_matched_global;
     vector<int> classes_matched_global;
-    matcher.matchGlobal(keypoints, descriptors, points_matched_global, classes_matched_global);
+    {
+        MicrosecondBlock msb("matchGlobal");
+        matcher.matchGlobal(keypoints, descriptors, points_matched_global, classes_matched_global);
+    }
 
     FILE_LOG(logDEBUG) << points_matched_global.size() << " points matched globally.";
 
     //Fuse tracked and globally matched points
     vector<Point2f> points_fused;
     vector<int> classes_fused;
-    fusion.preferFirst(points_tracked, classes_tracked, points_matched_global, classes_matched_global,
+    {
+        MicrosecondBlock msb("fusion");
+        fusion.preferFirst(points_tracked, classes_tracked, points_matched_global, classes_matched_global,
             points_fused, classes_fused);
+    }
 
     FILE_LOG(logDEBUG) << points_fused.size() << " points fused.";
 
     //Estimate scale and rotation from the fused points
     float scale;
     float rotation;
-    consensus.estimateScaleRotation(points_fused, classes_fused, scale, rotation);
+    {
+        MicrosecondBlock msb("scaleRotation");
+        consensus.estimateScaleRotation(points_fused, classes_fused, scale, rotation);
+    }
 
     FILE_LOG(logDEBUG) << "scale " << scale << ", " << "rotation " << rotation;
 
@@ -165,8 +188,11 @@ void CMT::processFrame(Mat im_gray) {
     Point2f center;
     vector<Point2f> points_inlier;
     vector<int> classes_inlier;
-    consensus.findConsensus(points_fused, classes_fused, scale, rotation,
+    {
+        MicrosecondBlock msb("findConsensus");
+        consensus.findConsensus(points_fused, classes_fused, scale, rotation,
             center, points_inlier, classes_inlier);
+    }
 
     FILE_LOG(logDEBUG) << points_inlier.size() << " inlier points.";
     FILE_LOG(logDEBUG) << "center " << center;
@@ -174,7 +200,10 @@ void CMT::processFrame(Mat im_gray) {
     //Match keypoints locally
     vector<Point2f> points_matched_local;
     vector<int> classes_matched_local;
-    matcher.matchLocal(keypoints, descriptors, center, scale, rotation, points_matched_local, classes_matched_local);
+    {
+        MicrosecondBlock msb("matchLocal");
+        matcher.matchLocal(keypoints, descriptors, center, scale, rotation, points_matched_local, classes_matched_local);
+    }
 
     FILE_LOG(logDEBUG) << points_matched_local.size() << " points matched locally.";
 
@@ -183,7 +212,10 @@ void CMT::processFrame(Mat im_gray) {
     classes_active.clear();
 
     //Fuse locally matched points and inliers
-    fusion.preferFirst(points_matched_local, classes_matched_local, points_inlier, classes_inlier, points_active, classes_active);
+    {
+        MicrosecondBlock msb("fusion2");
+        fusion.preferFirst(points_matched_local, classes_matched_local, points_inlier, classes_inlier, points_active, classes_active);
+    }
 //    points_active = points_fused;
 //    classes_active = classes_fused;
 

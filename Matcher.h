@@ -30,7 +30,7 @@ private:
     vector<int> classes;
     int desc_length;
     int num_bg_points;
-    Ptr<DescriptorMatcher> bfmatcher;
+    Ptr<DescriptorMatcher> matcher;
     float thr_dist;
     float thr_ratio;
     float thr_cutoff;

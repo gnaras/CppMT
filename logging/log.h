@@ -3,6 +3,8 @@
 
 #include <sstream>
 #include <string>
+#include <chrono>
+#include <iostream>
 #include <stdio.h>
 
 inline std::string NowTime();
@@ -158,7 +160,7 @@ inline std::string NowTime()
     char buffer[11];
     time_t t;
     time(&t);
-    tm r = {};
+    tm r;
     strftime(buffer, sizeof(buffer), "%X", localtime_r(&t, &r));
     struct timeval tv;
     gettimeofday(&tv, 0);
@@ -168,5 +170,31 @@ inline std::string NowTime()
 }
 
 #endif //WIN32
+
+class MicrosecondBlock {
+public:
+    MicrosecondBlock(std::string&& id) : m_id(std::move(id)) {
+#ifdef DEBUG
+        m_start = std::chrono::high_resolution_clock::now();
+        ++m_enter;
+#endif //DEBUG
+    }
+    ~MicrosecondBlock() {
+#ifdef DEBUG
+        --m_enter;
+        auto elapsed = std::chrono::high_resolution_clock::now() - m_start;
+        auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+        for(int i = 0; i < m_enter; ++i) {
+            std::cout << "  ";
+        }
+        std::cout << "MSB " << m_id << " completed in " << microseconds << std::endl;
+#endif //DEBUG
+    }
+
+private:
+    std::chrono::time_point<std::chrono::high_resolution_clock> m_start;
+    std::string m_id;
+    static int m_enter;
+};
 
 #endif //__LOG_H__
