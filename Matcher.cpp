@@ -1,4 +1,5 @@
 #include "Matcher.h"
+//#include <opencv2/flann/miniflann.hpp>
 
 using cv::vconcat;
 using cv::DMatch;
@@ -35,7 +36,8 @@ void Matcher::initialize(const vector<Point2f> & pts_fg_norm, const Mat desc_fg,
     classes.insert(classes.end(), classes_fg.begin(), classes_fg.end());
 
     //Create descriptor matcher
-    bfmatcher = DescriptorMatcher::create("BruteForce-Hamming");
+    matcher = DescriptorMatcher::create("BruteForce-Hamming");
+    //matcher = new cv::FlannBasedMatcher(cv::makePtr<cv::flann::LshIndexParams>(12, 20, 2));
 
     FILE_LOG(logDEBUG) << "Matcher::initialize() return";
 }
@@ -52,8 +54,11 @@ void Matcher::matchGlobal(const vector<KeyPoint> & keypoints, const Mat descript
     }
 
     vector<vector<DMatch> > matches;
-    bfmatcher->knnMatch(descriptors, database, matches, 2);
-
+#ifdef DEBUG
+    std::cout << descriptors.size() << " " << database.size() << " " << std::endl;
+#endif //DEBUG
+    matcher->knnMatch(descriptors, database, matches, 2);
+    
     for (size_t i = 0; i < matches.size(); i++)
     {
         vector<DMatch> m = matches[i];
@@ -111,7 +116,7 @@ void Matcher::matchLocal(const vector<KeyPoint> & keypoints, const Mat descripto
         }
 
         //If there are no potential matches, continue
-        if (indices_potential.size() == 0) continue;
+        if (indices_potential.size() < 2) continue;
 
         //Build descriptor matrix and classes from potential indices
         Mat database_potential = Mat(indices_potential.size(), database.cols, database.type());
@@ -121,7 +126,7 @@ void Matcher::matchLocal(const vector<KeyPoint> & keypoints, const Mat descripto
 
         //Find distances between descriptors
         vector<vector<DMatch> > matches;
-        bfmatcher->knnMatch(descriptors.row(i), database_potential, matches, 2);
+        matcher->knnMatch(descriptors.row(i), database_potential, matches, 2);
 
         vector<DMatch> m = matches[0];
 

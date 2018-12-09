@@ -2,6 +2,8 @@
 
 using std::nth_element;
 
+int MicrosecondBlock::m_enter = 0;
+
 namespace cmt {
 
 //TODO: Check for even/uneven number of elements
