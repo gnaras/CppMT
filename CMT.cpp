@@ -125,6 +125,9 @@ void CMT::processFrame(Mat im_gray) {
     }
 
     FILE_LOG(logDEBUG) << points_tracked.size() << " tracked points.";
+#ifdef DEBUG
+    std::cout << points_tracked.size() << " tracked points." << std::endl;
+#endif //DEBUG
 
     //keep only successful classes
     vector<int> classes_tracked;
@@ -146,6 +149,9 @@ void CMT::processFrame(Mat im_gray) {
     }
 
     FILE_LOG(logDEBUG) << keypoints.size() << " keypoints found.";
+#ifdef DEBUG
+    std::cout << keypoints.size() << " keypoints found." << std::endl;
+#endif //DEBUG
 
     Mat descriptors;
     {
@@ -162,6 +168,9 @@ void CMT::processFrame(Mat im_gray) {
     }
 
     FILE_LOG(logDEBUG) << points_matched_global.size() << " points matched globally.";
+#ifdef DEBUG
+    std::cout << points_matched_global.size() << " points matched globally." << std::endl;
+#endif //DEBUG
 
     //Fuse tracked and globally matched points
     vector<Point2f> points_fused;
@@ -173,6 +182,9 @@ void CMT::processFrame(Mat im_gray) {
     }
 
     FILE_LOG(logDEBUG) << points_fused.size() << " points fused.";
+#ifdef DEBUG
+    std::cout << points_fused.size() << " points fused." << std::endl;
+#endif //DEBUG
 
     //Estimate scale and rotation from the fused points
     float scale;
@@ -183,6 +195,9 @@ void CMT::processFrame(Mat im_gray) {
     }
 
     FILE_LOG(logDEBUG) << "scale " << scale << ", " << "rotation " << rotation;
+#ifdef DEBUG
+    std::cout << "scale " << scale << ", " << "rotation " << rotation << std::endl;
+#endif //DEBUG
 
     //Find inliers and the center of their votes
     Point2f center;
@@ -196,6 +211,9 @@ void CMT::processFrame(Mat im_gray) {
 
     FILE_LOG(logDEBUG) << points_inlier.size() << " inlier points.";
     FILE_LOG(logDEBUG) << "center " << center;
+#ifdef DEBUG
+    std::cout << points_inlier.size() << " inlier points." << std::endl;
+#endif //DEBUG
 
     //Match keypoints locally
     vector<Point2f> points_matched_local;
@@ -206,6 +224,9 @@ void CMT::processFrame(Mat im_gray) {
     }
 
     FILE_LOG(logDEBUG) << points_matched_local.size() << " points matched locally.";
+#ifdef DEBUG
+    std::cout << points_matched_local.size() << " points matched locally." << std::endl;
+#endif //DEBUG
 
     //Clear active points
     points_active.clear();
@@ -220,6 +241,9 @@ void CMT::processFrame(Mat im_gray) {
 //    classes_active = classes_fused;
 
     FILE_LOG(logDEBUG) << points_active.size() << " final fused points.";
+#ifdef DEBUG
+    std::cout << points_active.size() << " final fused points." << std::endl;
+#endif //DEBUG
 
     //TODO: Use theta to suppress result
     bb_rot = RotatedRect(center,  size_initial * scale, rotation/CV_PI * 180);
