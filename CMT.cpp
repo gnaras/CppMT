@@ -167,9 +167,9 @@ void CMT::processFrame(Mat im_gray) {
         matcher.matchGlobal(keypoints, descriptors, points_matched_global, classes_matched_global);
     }
 
-    FILE_LOG(logDEBUG) << points_matched_global.size() << " points matched globally.";
+    FILE_LOG(logDEBUG) << numPointsMatchedGlobal << " points matched globally.";
 #ifdef DEBUG
-    std::cout << points_matched_global.size() << " points matched globally." << std::endl;
+    std::cout << numPointsMatchedGlobal << " points matched globally." << std::endl;
 #endif //DEBUG
 
     //Fuse tracked and globally matched points
@@ -222,10 +222,11 @@ void CMT::processFrame(Mat im_gray) {
         MicrosecondBlock msb("matchLocal");
         matcher.matchLocal(keypoints, descriptors, center, scale, rotation, points_matched_local, classes_matched_local);
     }
+    numPointsMatchedLocal = points_matched_local.size();
 
-    FILE_LOG(logDEBUG) << points_matched_local.size() << " points matched locally.";
+    FILE_LOG(logDEBUG) << numPointsMatchedLocal << " points matched locally.";
 #ifdef DEBUG
-    std::cout << points_matched_local.size() << " points matched locally." << std::endl;
+    std::cout << numPointsMatchedLocal << " points matched locally." << std::endl;
 #endif //DEBUG
 
     //Clear active points
@@ -240,9 +241,9 @@ void CMT::processFrame(Mat im_gray) {
 //    points_active = points_fused;
 //    classes_active = classes_fused;
 
-    FILE_LOG(logDEBUG) << points_active.size() << " final fused points.";
+    FILE_LOG(logDEBUG) << numPointsFinalFused << " final fused points.";
 #ifdef DEBUG
-    std::cout << points_active.size() << " final fused points." << std::endl;
+    std::cout << numPointsFinalFused << " final fused points." << std::endl;
 #endif //DEBUG
 
     //TODO: Use theta to suppress result

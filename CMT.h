@@ -37,6 +37,10 @@ public:
     vector<Point2f> points_active; //public for visualization purposes
     RotatedRect bb_rot;
 
+    size_t numPointsMatchedLocal {0};
+    size_t numPointsMatchedGlobal {0};
+    size_t numPointsFinalFused {0};
+
 private:
     Ptr<FeatureDetector> detector;
     Ptr<DescriptorExtractor> descriptor;
